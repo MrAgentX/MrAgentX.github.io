@@ -30,6 +30,29 @@ def generate_html(posts, directory):
     <head>
         <title>MrAgentX的部落格</title>
         <style>
+            body {
+                background-color: #FFF8E7; /* 淡橘黃色背景 */
+                font-family: Arial, sans-serif;
+            }
+            .header-image {
+                display: block;
+                margin: auto;
+                width: 80%;
+                max-width: 600px;
+            }
+            .copy-button {
+                display: block;
+                margin: 20px auto;
+                padding: 10px 20px;
+                background-color: #ffcc80;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 16px;
+            }
+            .copy-button:hover {
+                background-color: #ffb74d;
+            }
             .post-images {
                 display: flex;
                 overflow-x: auto;
@@ -46,9 +69,29 @@ def generate_html(posts, directory):
             .post-title {
                 text-align: center;
             }
+            a {
+                text-decoration: none;
+                color: #333;
+                font-size: 18px;
+            }
+            a:hover {
+                color: #ff9800;
+            }
         </style>
+        <script>
+            function copyAndRedirect() {
+                const content = document.body.innerText;
+                navigator.clipboard.writeText(content).then(() => {
+                    window.location.href = "https://chatgpt.com/";
+                }).catch(err => {
+                    console.error('Failed to copy!', err);
+                });
+            }
+        </script>
     </head>
     <body>
+        <img src="images/header_image.png" alt="Header Image" class="header-image">
+        <button class="copy-button" onclick="copyAndRedirect()">複製所有內容，到 chatGPT</button>
         <h1>MrAgentX的部落格</h1>
         <a href="https://www.threads.net/@ofcourse.i.still.love.you">Visit my Threads profile</a>
     """
@@ -79,7 +122,8 @@ def generate_html(posts, directory):
             content = re.sub(r'(https?://[^\s]+)', r'<a href="\1">\1</a>', content)
             # 將 Markdown 內容轉換為 HTML
             content = content.replace('\n', '<br>')  # 簡單的換行處理
-            html_content += f"<h2 class='post-title'>{title}</h2>"
+            # 將標題設為超連結
+            html_content += f"<h2 class='post-title'><a href='{title}.html'>{title}</a></h2>"
             html_content += f'<div class="post-content">{content}</div>'
             if images_html:
                 html_content += f'<div class="post-images">{images_html}</div>'
@@ -89,8 +133,144 @@ def generate_html(posts, directory):
     with open('index.html', 'w', encoding='utf-8') as f:
         f.write(html_content)
 
+def generate_post_html(post, directory):
+    with open(os.path.join(directory, post), 'r', encoding='utf-8') as f:
+        content = f.read()
+        # 移除 YAML 頭部
+        content = re.sub(r'^---.*?---\s*', '', content, flags=re.DOTALL)
+        # 提取標題
+        title = os.path.splitext(post)[0]
+        # 將圖片路徑轉換為 HTML 語法
+        images_html = ""
+        def replace_image_path(match):
+            nonlocal images_html
+            alt_text = match.group(1)
+            image_path = match.group(2)
+            new_image_path = f'images/posts/{os.path.basename(image_path)}'
+            images_html += f'<img src="{new_image_path}" alt="{alt_text}" width="300">'
+            return ""
+        
+        content = re.sub(r'!\[(.*?)\]\((.*?)\)', replace_image_path, content)
+        # 將 Markdown 連結轉換為 HTML 超連結
+        content = re.sub(r'\[(.*?)\]\((.*?)\)', r'<a href="\2">\1</a>', content)
+        # 將網址轉換為 HTML 超連結
+        content = re.sub(r'(https?://[^\s]+)', r'<a href="\1">\1</a>', content)
+        # 將 Markdown 內容轉換為 HTML
+        content = content.replace('\n', '<br>')  # 簡單的換行處理
+        html_content = f"""
+        <html>
+        <head>
+            <title>{title}</title>
+            <style>
+                .post-images {{
+                    display: flex;
+                    overflow-x: auto;
+                    white-space: nowrap;
+                }}
+                .post-images img {{
+                    margin-right: 10px;
+                    max-height: 200px;
+                }}
+                .post-content {{
+                    max-width: 800px;
+                    margin: auto;
+                }}
+                .post-title {{
+                    text-align: center;
+                }}
+            </style>
+        </head>
+        <body>
+            <h1 class='post-title'>{title}</h1>
+            <div class="post-content">{content}</div>
+        """
+        if images_html:
+            html_content += f'<div class="post-images">{images_html}</div>'
+        html_content += "</body></html>"
+        
+        post_html_filename = f"{title}.html"
+        with open(post_html_filename, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+
+def generate_homepage(posts, directory):
+    html_content = """
+    <html>
+    <head>
+        <title>MrAgentX的部落格首頁</title>
+        <style>
+            body {
+                background-color: #FFF8E7; /* 淡橘黃色背景 */
+                font-family: Arial, sans-serif;
+            }
+            .header-image {
+                display: block;
+                margin: auto;
+                width: 80%;
+                max-width: 600px;
+            }
+            .copy-button {
+                display: block;
+                margin: 20px auto;
+                padding: 10px 20px;
+                background-color: #ffcc80;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 16px;
+            }
+            .copy-button:hover {
+                background-color: #ffb74d;
+            }
+            ul {
+                list-style-type: none;
+                padding: 0;
+            }
+            li {
+                margin: 10px 0;
+            }
+            a {
+                text-decoration: none;
+                color: #333;
+                font-size: 18px;
+            }
+            a:hover {
+                color: #ff9800;
+            }
+        </style>
+        <script>
+            function copyAndRedirect() {
+                const content = document.body.innerText;
+                navigator.clipboard.writeText(content).then(() => {
+                    window.location.href = "https://chatgpt.com/";
+                }).catch(err => {
+                    console.error('Failed to copy!', err);
+                });
+            }
+        </script>
+    </head>
+    <body>
+        <img src="images/header_image.png" alt="Header Image" class="header-image">
+        <button class="copy-button" onclick="copyAndRedirect()">複製所有內容，到 chatGPT</button>
+        <h1>MrAgentX的部落格首頁</h1>
+        <ul>
+    """
+    for post in posts:
+        title = os.path.splitext(post)[0]
+        post_html_filename = f"{title}.html"
+        html_content += f'<li><a href="{post_html_filename}">{title}</a></li>'
+    html_content += """
+        </ul>
+    </body>
+    </html>
+    """
+    with open('homepage.html', 'w', encoding='utf-8') as f:
+        f.write(html_content)
+
 if __name__ == "__main__":
     current_directory = os.path.dirname(__file__)
     posts_directory = os.path.join(current_directory, 'posts')
     latest_posts = get_latest_posts(posts_directory)
+    for p in latest_posts:
+        generate_post_html(p, posts_directory)
+    generate_homepage(latest_posts, posts_directory)
     generate_html(latest_posts, posts_directory)
